@@ -1,434 +1,704 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="no-js">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OPPO Watch 2 原生 APK 开发经验包 · 汇报</title>
+<title>OPPO Watch 2 原生 APK 开发经验包</title>
 <style>
+/* ==========================================================================
+   Token layer — measured from apple.com.cn/store (see apple-style skill)
+   ========================================================================== */
+:root{
+  --ap-ink:#1d1d1f;
+  --ap-ink-88:rgba(0,0,0,.88);
+  --ap-ink-80:rgba(0,0,0,.8);
+  --ap-ink-72:rgba(0,0,0,.72);
+  --ap-ink-56:rgba(0,0,0,.56);
+  --ap-ink-48:rgba(0,0,0,.48);
+  --ap-gray:#6e6e73;
+  --ap-gray-3:#86868b;
+  --ap-gray-4:#a1a1a6;
+  --ap-hairline:#d2d2d7;
+  --ap-hairline-strong:#b8b8bd;
+
+  --ap-white:#ffffff;
+  --ap-surface:#f5f5f7;
+  --ap-surface-2:#e8e8ed;
+  --ap-canvas:#ffffff;
+
+  --ap-blue:#0071e3;
+  --ap-blue-hover:#0076df;
+  --ap-blue-active:#006edb;
+  --ap-blue-dark:#2997ff;
+  --ap-link:#06c;
+  --ap-focus:#0071e3;
+
+  --ap-nav-bg:rgba(250,250,252,.8);
+  --ap-nav-bg-scrolled:rgba(250,250,252,.92);
+  --ap-nav-border:rgba(0,0,0,.08);
+  --ap-nav-border-scrolled:rgba(0,0,0,.12);
+
+  --ap-font-display:"SF Pro Display","SF Pro Icons",-apple-system,BlinkMacSystemFont,
+    "Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+    "Noto Sans SC",sans-serif;
+  --ap-font-text:"SF Pro Text","SF Pro Icons",-apple-system,BlinkMacSystemFont,
+    "Helvetica Neue",Helvetica,Arial,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",
+    "Noto Sans SC",sans-serif;
+  --ap-font-mono:"SF Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --ap-r-xs:5px;
+  --ap-r-sm:8px;
+  --ap-r-md:12px;
+  --ap-r-lg:18px;
+  --ap-r-xl:28px;
+  --ap-r-pill:980px;
+
+  --ap-shadow-1:0 1px 2px rgba(0,0,0,.04);
+  --ap-shadow-2:0 2px 4px rgba(0,0,0,.04),0 4px 12px rgba(0,0,0,.08);
+  --ap-shadow-3:0 8px 24px rgba(0,0,0,.10);
+
+  --ap-ease:cubic-bezier(.4,0,.6,1);
+  --ap-ease-out:cubic-bezier(0,0,.58,1);
+  --ap-dur-fast:160ms;
+  --ap-dur:240ms;
+  --ap-dur-slow:400ms;
+
+  --ap-spring-snappy:cubic-bezier(.2,.9,.3,1);
+  --ap-spring-snappy-dur:327ms;
+  --ap-spring-gentle:cubic-bezier(.16,.84,.44,1);
+  --ap-spring-gentle-dur:471ms;
+
+  --ap-max-text:980px;
+  --ap-max-wide:1080px;
+  --ap-section-y:96px;
+}
+/* Real springs — damped, peak ≤ 1.04, settle < 500ms. Generated stop lists. */
+@supports (transition-timing-function:linear(0,1)){
   :root{
-    --bg:#0B0E13; --bg2:#05070A; --card:#13171F; --card2:#1A1F29;
-    --line:#1F2632; --text:#F3F6FA; --dim:#8B95A5; --faint:#5B6472;
-    --accent:#FF7A1A; --live:#FF4D5E; --win:#3DDC97;
-    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Consolas,"Courier New",monospace;
+    --ap-spring-snappy:linear(0, 0.045, 0.152, 0.286, 0.424, 0.554, 0.668, 0.763, 0.839, 0.897, 0.94, 0.971, 0.991, 1.004, 1.011, 1.014, 1.015, 1.014, 1.013, 1.011, 1.009, 1.007, 1.005, 1.003, 1.002, 1);
+    --ap-spring-gentle:linear(0, 0.037, 0.123, 0.233, 0.349, 0.461, 0.563, 0.653, 0.729, 0.791, 0.842, 0.883, 0.915, 0.939, 0.957, 0.971, 0.981, 0.988, 0.993, 0.997, 0.999, 1, 1.001, 1.001, 1.002, 1);
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{
-    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
-    color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-    line-height:1.65; -webkit-font-smoothing:antialiased;
-    padding-bottom:80px;
-    overflow-x:hidden;               /* wide code blocks scroll, the page never does */
-  }
-  .wrap{max-width:1040px;margin:0 auto;padding:0 28px}
+}
 
-  /* ---------- nav ---------- */
-  nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);
-      background:rgba(11,14,19,.78);border-bottom:1px solid var(--line)}
-  nav .wrap{display:flex;align-items:center;gap:22px;height:54px}
-  nav .brand{font-weight:600;font-size:14px;letter-spacing:.2px;white-space:nowrap}
-  nav .brand span{color:var(--accent)}
-  nav .links{display:flex;gap:18px;margin-left:auto;overflow:auto;scrollbar-width:none}
-  nav .links::-webkit-scrollbar{display:none}
-  nav a{color:var(--dim);text-decoration:none;font-size:13px;white-space:nowrap;transition:color .18s}
-  nav a:hover{color:var(--text)}
+/* ==========================================================================
+   Base
+   ========================================================================== */
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--ap-canvas);color:var(--ap-ink);
+  font:400 17px/1.55 var(--ap-font-text);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  letter-spacing:0;              /* CJK: never negative tracking */
+  overflow-x:hidden;
+}
+h1,h2,h3,h4{margin:0;font-family:var(--ap-font-display);font-weight:600;color:var(--ap-ink)}
+p{margin:0}
+a{color:var(--ap-link);text-decoration:none}
+:where(a,button,[tabindex]):focus-visible{
+  outline:2px solid var(--ap-focus);outline-offset:2px;border-radius:var(--ap-r-xs);
+}
+code{
+  font-family:var(--ap-font-mono);font-size:.86em;color:var(--ap-ink);
+  background:var(--ap-surface-2);border-radius:var(--ap-r-xs);padding:1.5px 5px;
+}
+.wrap{max-width:var(--ap-max-text);margin:0 auto;padding:0 24px}
+.wrap-wide{max-width:var(--ap-max-wide);margin:0 auto;padding:0 24px}
 
-  /* ---------- hero ---------- */
-  header{padding:86px 0 58px;position:relative;overflow:hidden}
-  header::after{content:"";position:absolute;top:-160px;left:50%;transform:translateX(-50%);
-    width:760px;height:420px;background:radial-gradient(ellipse,rgba(255,122,26,.13),transparent 68%);
-    pointer-events:none}
-  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;
-    color:var(--accent);text-transform:uppercase;font-weight:600;margin-bottom:20px}
-  .eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);border-radius:2px}
-  h1{font-size:clamp(30px,4.6vw,50px);line-height:1.16;letter-spacing:-.8px;font-weight:650}
-  h1 em{font-style:normal;color:var(--accent)}
-  .lede{color:var(--dim);font-size:clamp(15px,1.6vw,17px);max-width:660px;margin-top:20px}
-  .badges{display:flex;flex-wrap:wrap;gap:9px;margin-top:28px}
-  .badge{font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
-    background:rgba(255,255,255,.03);color:var(--dim);font-family:var(--mono)}
-  .badge.ok{color:var(--win);border-color:rgba(61,220,151,.3);background:rgba(61,220,151,.07)}
+/* ==========================================================================
+   Nav — 44px, translucent, blur only over scrolling content
+   ========================================================================== */
+.nav{
+  position:sticky;top:0;z-index:100;
+  background:var(--ap-nav-bg);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  backdrop-filter:saturate(180%) blur(20px);
+  border-bottom:1px solid var(--ap-nav-border);
+  transition:background-color var(--ap-dur) var(--ap-ease),
+             border-color var(--ap-dur) var(--ap-ease);
+}
+.nav.scrolled{background:var(--ap-nav-bg-scrolled);border-bottom-color:var(--ap-nav-border-scrolled)}
+.nav-inner{
+  max-width:var(--ap-max-wide);margin:0 auto;height:44px;padding:0 24px;
+  display:flex;align-items:center;gap:32px;
+}
+.brand{
+  font:600 14px/1 var(--ap-font-text);letter-spacing:0;white-space:nowrap;color:var(--ap-ink);
+}
+.brand em{font-style:normal;font-weight:400;color:var(--ap-gray-3)}
+.nav-links{display:flex;gap:26px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{
+  font:400 12px/1 var(--ap-font-text);color:var(--ap-ink-80);white-space:nowrap;
+  transition:color var(--ap-dur-fast) var(--ap-ease);
+}
+.nav-links a:hover{color:var(--ap-ink)}
 
-  /* ---------- sections ---------- */
-  section{padding:52px 0;border-top:1px solid var(--line)}
-  .sec-head{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
-  .sec-num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.1em}
-  h2{font-size:clamp(20px,2.4vw,26px);font-weight:600;letter-spacing:-.3px}
-  .sec-sub{color:var(--faint);font-size:14px;margin-bottom:30px;max-width:720px}
+/* ==========================================================================
+   Hero
+   ========================================================================== */
+.hero{padding:104px 24px 88px;text-align:center}
+.eyebrow{
+  font:400 12px/1.3 var(--ap-font-text);color:var(--ap-gray);margin-bottom:18px;
+}
+.hero h1{
+  font:600 clamp(34px,4.6vw,60px)/1.18 var(--ap-font-display);
+  letter-spacing:.005em;margin:0 auto;max-width:15em;
+}
+.hero h1 .accent{color:var(--ap-blue)}
+.lede{
+  font:400 clamp(17px,2vw,21px)/1.45 var(--ap-font-text);color:var(--ap-gray);
+  max-width:640px;margin:22px auto 0;
+}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:32px}
+.chip{
+  font:400 12px/1 var(--ap-font-text);padding:7px 12px;border-radius:var(--ap-r-pill);
+  background:var(--ap-surface);color:var(--ap-gray);white-space:nowrap;
+}
+.chip.ok{background:rgba(0,113,227,.1);color:var(--ap-blue)}
+.chip.mono{font-family:var(--ap-font-mono);letter-spacing:-.01em}
 
-  /* ---------- stats ---------- */
-  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px}
-  .stat b{display:block;font-size:clamp(24px,3vw,32px);font-weight:650;letter-spacing:-.6px}
-  .stat b i{font-style:normal;font-size:.55em;color:var(--dim);font-weight:500;margin-left:2px}
-  .stat span{display:block;font-size:12px;color:var(--faint);margin-top:6px;letter-spacing:.02em}
-  .stat.a b{color:var(--accent)} .stat.g b{color:var(--win)}
+/* ==========================================================================
+   Sections
+   ========================================================================== */
+.sec{padding:var(--ap-section-y) 0}
+.sec-white{background:var(--ap-canvas)}
+.sec-surface{background:var(--ap-surface)}
+.kicker{font:400 12px/1.3 var(--ap-font-mono);color:var(--ap-gray-3);letter-spacing:.04em;margin-bottom:10px}
+.sec h2{font:600 clamp(28px,3.4vw,40px)/1.14 var(--ap-font-display);letter-spacing:.005em}
+.sub{font:400 clamp(16px,1.8vw,19px)/1.5 var(--ap-font-text);color:var(--ap-gray);max-width:660px;margin-top:12px}
+.sec-body{margin-top:40px}
 
-  /* ---------- repo tree ---------- */
-  .tree{background:var(--card);border:1px solid var(--line);border-radius:14px;
-    padding:22px 24px;font-family:var(--mono);font-size:13px;line-height:2;overflow-x:auto}
-  .tree .d{color:var(--accent)} .tree .f{color:var(--text)}
-  .tree .c{color:var(--faint)} .tree .n{color:var(--faint);float:right;padding-left:18px}
+/* ==========================================================================
+   Stat tiles — surface color, no border, no rest shadow
+   ========================================================================== */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.stat{background:var(--ap-white);border-radius:var(--ap-r-lg);padding:26px 24px 24px}
+.sec-white .stat{background:var(--ap-surface)}
+.stat b{
+  display:block;font:600 clamp(30px,3.6vw,40px)/1.1 var(--ap-font-display);letter-spacing:-.009em;
+}
+.stat b i{font-style:normal;font-size:.5em;font-weight:400;color:var(--ap-gray-3);margin-left:2px}
+.stat span{display:block;font:400 14px/1.4 var(--ap-font-text);color:var(--ap-gray);margin-top:8px}
 
-  /* ---------- cards ---------- */
-  .cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
-    padding:24px 24px 22px;position:relative;transition:border-color .2s,transform .2s}
-  .card:hover{border-color:rgba(255,122,26,.4);transform:translateY(-2px)}
-  .card .k{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.12em}
-  .card h3{font-size:17px;font-weight:600;margin:9px 0 10px;letter-spacing:-.2px}
-  .card p{font-size:13.5px;color:var(--dim);line-height:1.7}
-  .card ul{list-style:none;margin-top:12px;display:flex;flex-direction:column;gap:6px}
-  .card li{font-size:12.5px;color:var(--faint);padding-left:14px;position:relative}
-  .card li::before{content:"·";position:absolute;left:2px;color:var(--accent);font-weight:700}
-  .card .file{position:absolute;top:22px;right:22px;font-family:var(--mono);font-size:10.5px;
-    color:var(--faint);border:1px solid var(--line);padding:2px 7px;border-radius:6px}
+/* ==========================================================================
+   Repo tree
+   ========================================================================== */
+.tree{
+  background:var(--ap-surface);border-radius:var(--ap-r-lg);padding:8px 24px;margin-top:20px;
+}
+.sec-surface .tree{background:var(--ap-white)}
+.trow{
+  display:flex;align-items:baseline;gap:16px;padding:11px 0;
+  border-top:1px solid var(--ap-hairline);
+}
+.trow:first-child{border-top:0}
+.tpath{
+  font:400 13px/1.5 var(--ap-font-mono);color:var(--ap-ink);white-space:pre;flex:0 0 auto;
+}
+.tpath .dir{font-weight:600}
+.tnote{font:400 13px/1.5 var(--ap-font-text);color:var(--ap-gray-3);margin-left:auto;text-align:right}
 
-  /* ---------- chain ---------- */
-  .chain{display:flex;flex-direction:column;gap:0;margin-top:8px}
-  .step{display:grid;grid-template-columns:34px 132px 1fr;gap:16px;padding:16px 0;
-    border-bottom:1px dashed var(--line);align-items:start}
-  .step:last-child{border-bottom:none}
-  .step .i{font-family:var(--mono);font-size:12px;color:var(--faint);padding-top:2px}
-  .step .cmd{font-family:var(--mono);font-size:12.5px;color:var(--accent);padding-top:1px}
-  .step .why{font-size:13px;color:var(--dim)}
-  .step .why b{color:var(--text);font-weight:600}
-  .trap{display:inline-block;margin-top:6px;font-size:11.5px;color:var(--live);
-    background:rgba(255,77,94,.08);border:1px solid rgba(255,77,94,.22);
-    padding:2px 8px;border-radius:6px}
+/* ==========================================================================
+   Cards — 18px, surface separation, hover lifts 2px
+   ========================================================================== */
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{
+  background:var(--ap-white);border-radius:var(--ap-r-lg);padding:30px 28px 28px;
+  transition:transform var(--ap-dur) var(--ap-ease),box-shadow var(--ap-dur) var(--ap-ease);
+}
+.sec-white .card{background:var(--ap-surface)}
+.card:hover{transform:translateY(-2px);box-shadow:var(--ap-shadow-2)}
+.card .tag{
+  display:inline-block;font:400 11px/1 var(--ap-font-mono);color:var(--ap-gray);
+  background:var(--ap-surface-2);border-radius:var(--ap-r-xs);padding:4px 7px;
+}
+.sec-white .card .tag{background:var(--ap-white)}
+.card h3{font:600 24px/1.2 var(--ap-font-display);letter-spacing:.005em;margin:14px 0 8px}
+.card .desc{font:400 15px/1.55 var(--ap-font-text);color:var(--ap-gray)}
+.card ul{list-style:none;margin:16px 0 0;padding:0}
+.card li{
+  font:400 14px/1.5 var(--ap-font-text);color:var(--ap-ink-72);
+  padding:8px 0 8px 18px;position:relative;border-top:1px solid var(--ap-hairline);
+}
+.card li:first-child{border-top:0}
+.card li::before{
+  content:"";position:absolute;left:2px;top:16px;width:5px;height:5px;
+  border-radius:50%;background:var(--ap-gray-4);
+}
 
-  /* ---------- pitfalls ---------- */
-  .pit{display:grid;grid-template-columns:1fr;gap:12px}
-  .p{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--live);
-    border-radius:0 12px 12px 0;padding:16px 20px}
-  .p.hot{border-left-color:var(--accent)}
-  .p.cold{border-left-color:var(--win)}
-  .p .t{font-size:14.5px;font-weight:600;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-  .p .t em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--faint);font-weight:400}
-  .p .row{display:flex;gap:10px;font-size:13px;color:var(--dim);margin-top:7px;line-height:1.6}
-  .p .lbl{flex:0 0 34px;font-family:var(--mono);font-size:11px;color:var(--faint);padding-top:2px}
-  .p .fix{color:var(--text)}
-  code{font-family:var(--mono);font-size:.88em;background:rgba(255,255,255,.06);
-    padding:1.5px 5px;border-radius:4px;color:#FFC79A}
+/* ==========================================================================
+   Build chain
+   ========================================================================== */
+.chain{margin-top:8px}
+.step{
+  display:grid;grid-template-columns:40px 190px 1fr;gap:24px;align-items:start;
+  padding:26px 0;border-top:1px solid var(--ap-hairline);
+}
+.step:first-child{border-top:0}
+.step .i{font:400 12px/1.6 var(--ap-font-mono);color:var(--ap-gray-3)}
+.step .cmd{font:400 14px/1.5 var(--ap-font-mono);color:var(--ap-ink);font-weight:600}
+.step .why{font:400 15px/1.6 var(--ap-font-text);color:var(--ap-gray)}
+.step .why b{color:var(--ap-ink);font-weight:600}
+.trap{
+  display:block;margin-top:10px;font:400 13px/1.5 var(--ap-font-text);color:var(--ap-ink-72);
+  background:var(--ap-surface);border-radius:var(--ap-r-md);padding:10px 14px;
+}
+.sec-surface .trap{background:var(--ap-white)}
+.trap em{
+  font-style:normal;font-family:var(--ap-font-mono);font-size:11px;color:var(--ap-gray-3);
+  margin-right:8px;
+}
 
-  /* ---------- evidence ---------- */
-  .term{background:#04060A;border:1px solid var(--line);border-radius:12px;padding:18px 20px;
-    font-family:var(--mono);font-size:12.5px;line-height:1.95;overflow-x:auto;color:var(--dim);
-    white-space:pre;tab-size:2}
-  .term .g{color:var(--win)} .term .y{color:var(--accent)} .term .m{color:var(--faint)}
-  .term .cmdline{color:var(--text)}
+/* ==========================================================================
+   Pitfalls — prose column, hairline separated, no colored borders
+   ========================================================================== */
+.pits{margin-top:8px;max-width:816px}
+.pit{padding:32px 0;border-top:1px solid var(--ap-hairline)}
+.pit:first-child{border-top:0}
+.pit h3{
+  font:600 21px/1.45 var(--ap-font-display);letter-spacing:.005em;
+}
+.pit h3 .n{
+  font:400 12px/1 var(--ap-font-mono);color:var(--ap-gray-3);
+  margin-left:10px;white-space:nowrap;vertical-align:2px;
+}
+.pit dl{margin:16px 0 0;display:grid;grid-template-columns:56px 1fr;gap:10px 16px}
+.pit dt{font:400 12px/1.7 var(--ap-font-text);color:var(--ap-gray-3);margin:0}
+.pit dd{margin:0;font:400 15px/1.7 var(--ap-font-text);color:var(--ap-gray)}
+.pit dd.fix{color:var(--ap-ink)}
 
-  /* ---------- usage ---------- */
-  .use{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-  .usecard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
-  .usecard h4{font-size:14px;font-weight:600;margin-bottom:12px}
-  .usecard ol{margin-left:18px;display:flex;flex-direction:column;gap:8px}
-  .usecard li{font-size:13px;color:var(--dim)}
-  .usecard li b{color:var(--text)}
+/* ==========================================================================
+   Evidence — the one dark surface on the page
+   ========================================================================== */
+.term{
+  background:#000;border-radius:var(--ap-r-lg);padding:30px 32px;margin-top:8px;
+  font:400 13px/1.95 var(--ap-font-mono);color:#f5f5f7;
+  white-space:pre;tab-size:2;overflow-x:auto;
+}
+.term .m{color:var(--ap-gray-3)}
+.term .ok{color:var(--ap-blue-dark);font-weight:600}
+.term .k{color:#f5f5f7}
 
-  footer{border-top:1px solid var(--line);padding:34px 0 20px;color:var(--faint);font-size:12.5px}
-  footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
-  footer a{color:var(--dim);text-decoration:none}
-  footer a:hover{color:var(--accent)}
+/* ==========================================================================
+   Usage
+   ========================================================================== */
+.use{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.usecard{background:var(--ap-white);border-radius:var(--ap-r-lg);padding:30px 28px}
+.usecard h3{font:600 19px/1.3 var(--ap-font-display);margin-bottom:16px}
+.usecard ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:12px}
+.usecard li{font:400 15px/1.6 var(--ap-font-text);color:var(--ap-gray)}
+.usecard li b{color:var(--ap-ink);font-weight:600}
+.note{
+  margin-top:20px;font:400 14px/1.6 var(--ap-font-text);color:var(--ap-gray);
+  background:var(--ap-white);border-radius:var(--ap-r-md);padding:16px 20px;
+}
+.note code{background:var(--ap-surface-2)}
 
-  @media (max-width:820px){
-    .stats{grid-template-columns:1fr 1fr}
-    .cards,.use{grid-template-columns:1fr}
-    .step{grid-template-columns:24px 1fr;gap:8px 12px}
-    .step .why{grid-column:2}
-    nav .links{display:none}
-    header{padding:60px 0 40px}
-    .wrap{padding:0 18px}
-    /* The tree annotates every file on the right; below 820px there is no room,
-       so the note becomes its own line instead of a float. */
-    .tree{font-size:12px;padding:18px 16px}
-    .tree .n{float:none;display:block;padding-left:16px;color:var(--faint);opacity:.8}
-    .card .file{position:static;display:inline-block;margin-bottom:10px}
-  }
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+.footer{
+  background:var(--ap-surface);border-top:1px solid var(--ap-hairline);
+  padding:40px 0 56px;font:400 12px/1.6 var(--ap-font-text);color:var(--ap-gray-3);
+}
+.footer .wrap-wide{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.footer a{color:var(--ap-gray);transition:color var(--ap-dur-fast) var(--ap-ease)}
+.footer a:hover{color:var(--ap-ink);text-decoration:underline}
+
+/* ==========================================================================
+   Reveal — transform only, never opacity: if the observer never fires (print,
+   reader mode, a very tall viewport) the content is still fully readable.
+   ========================================================================== */
+.js .reveal{transform:translateY(14px)}
+.js .reveal.in{
+  transform:none;
+  transition:transform var(--ap-spring-gentle-dur) var(--ap-spring-gentle);
+}
+@media (prefers-reduced-motion:reduce){
+  .js .reveal{transform:none}
+  .js .reveal.in{transition:none}
+  .card:hover{transform:none}
+}
+
+/* ==========================================================================
+   Print / PDF — reveal never ran, so force content visible and drop chrome
+   ========================================================================== */
+@media print{
+  .js .reveal{transform:none !important}
+  .nav,.footer{display:none}
+  .sec{padding:32px 0;break-inside:avoid}
+  .hero{padding:32px 0 24px}
+  .card,.stat,.usecard,.tree,.term,.pit{break-inside:avoid}
+  .term{background:#fff;color:var(--ap-ink);border:1px solid var(--ap-hairline)}
+  .term .k,.term .ok,.term .m{color:var(--ap-ink)}
+  .card:hover{transform:none;box-shadow:none}
+}
+
+/* ==========================================================================
+   Narrow screens — Apple breakpoints 1068 / 734 / 480
+   ========================================================================== */
+@media (max-width:1068px){
+  :root{--ap-section-y:80px}
+  .step{grid-template-columns:32px 150px 1fr;gap:20px}
+}
+@media (max-width:734px){
+  :root{--ap-section-y:56px}
+  .hero{padding:64px 20px 56px}
+  .wrap,.wrap-wide{padding:0 20px}
+  .nav-inner{padding:0 20px;gap:20px}
+  .nav-links{display:none}
+  .stats{grid-template-columns:1fr 1fr}
+  .cards,.use{grid-template-columns:1fr}
+  .step{grid-template-columns:28px 1fr;gap:6px 14px;padding:22px 0}
+  .step .why{grid-column:2}
+  .trow{flex-direction:column;gap:2px;align-items:flex-start}
+  .tnote{margin-left:0;text-align:left}
+  .tree{padding:6px 18px}
+  .term{padding:22px 20px;font-size:12px;border-radius:var(--ap-r-md)}
+  .pit dl{grid-template-columns:1fr;gap:2px}
+  .pit dt{margin-top:8px}
+  .card,.usecard{padding:24px 22px}
+}
+@media (max-width:480px){
+  .stats{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
-<nav>
-  <div class="wrap">
-    <div class="brand">OPPO Watch 2<span> / </span>APK Skill</div>
-    <div class="links">
+<header class="nav" id="nav">
+  <div class="nav-inner">
+    <span class="brand">OPPO Watch 2 <em>· APK Skill</em></span>
+    <nav class="nav-links" aria-label="章节">
       <a href="#what">交付物</a>
       <a href="#four">四块内容</a>
       <a href="#chain">构建链</a>
       <a href="#pitfalls">避坑点</a>
       <a href="#proof">实测</a>
       <a href="#use">怎么用</a>
-    </div>
-  </div>
-</nav>
-
-<header>
-  <div class="wrap">
-    <div class="eyebrow">Skill Export · 2026-11-24</div>
-    <h1>给这块表写 App，<br>不用 <em>Gradle</em>，也不用猜。</h1>
-    <p class="lede">
-      把 OPPO Watch 2 上一个真实项目的全部经验——adb 操作、工程结构、构建链、20 个真实踩过的坑——
-      整理成一个可直接落地的 skill 包。全部数字来自真机实测，模板是可编译、已签名的可运行工程。
-    </p>
-    <div class="badges">
-      <span class="badge ok">✓ signed OK · 25,139 B</span>
-      <span class="badge">commit 8ae5a0e</span>
-      <span class="badge">5 files · 1,589 lines</span>
-      <span class="badge">GPL-3.0</span>
-    </div>
+    </nav>
   </div>
 </header>
 
-<section id="what">
-  <div class="wrap">
-    <div class="sec-head"><span class="sec-num">01</span><h2>交付物是什么</h2></div>
-    <p class="sec-sub">一个 skill 目录 + 一个能直接 <code>bash build.sh</code> 出包的最小工程。不是文档堆，是可执行的脚手架。</p>
+<main>
 
-    <div class="stats">
-      <div class="stat a"><b>4</b><span>篇 references / 主题</span></div>
-      <div class="stat"><b>20</b><span>条真实避坑记录</span></div>
-      <div class="stat g"><b>25<i>KB</i></b><span>模板编译产物</span></div>
-      <div class="stat"><b>5<i>s</i></b><span>全量构建耗时</span></div>
-    </div>
-
-    <div class="tree" style="margin-top:22px">
-      <div><span class="d">OPPO-Watch2-APK-Skill/</span></div>
-      <div>├── <span class="f">SKILL.md</span><span class="n">agent 入口 · frontmatter + 硬结论 + 交付清单</span></div>
-      <div>├── <span class="f">README.md</span><span class="n">人读的 30 秒上手 + 六条最贵结论</span></div>
-      <div>├── <span class="d">references/</span></div>
-      <div>│   ├── <span class="f">adb.md</span><span class="n">① adb 使用方法 · 129 行</span></div>
-      <div>│   ├── <span class="f">project-notes.md</span><span class="n">② 项目经验 · 150 行</span></div>
-      <div>│   ├── <span class="f">caveats.md</span><span class="n">③ 注意事项 · 71 行</span></div>
-      <div>│   └── <span class="f">pitfalls.md</span><span class="n">④ 避坑点 · 247 行</span></div>
-      <div>└── <span class="d">templates/</span><span class="n">最小可编译工程</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="f">build.sh</span><span class="n">五步构建 · 90 行</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="f">WatchView.java</span><span class="n">自绘 UI 骨架 · 436 行</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;├── <span class="f">Main.java</span> / <span class="f">Cache.java</span><span class="n">Activity + 磁盘缓存</span></div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="d">res/</span> + <span class="d">tools/adddex.py</span><span class="n">资源与 dex 打包</span></div>
-    </div>
+<section class="hero">
+  <p class="eyebrow">Skill Export · 2026-11-24</p>
+  <h1>给这块表写 App，<br>不用 <span class="accent">Gradle</span>，也不用猜。</h1>
+  <p class="lede">
+    把 OPPO Watch 2 上一个真实项目的全部经验——adb 操作、工程结构、构建链、20 个真实踩过的坑——
+    整理成一个可直接落地的 skill 包。数字全部来自真机实测，模板是可编译、已签名的可运行工程。
+  </p>
+  <div class="chips">
+    <span class="chip ok">✓ signed OK · 25,139 B</span>
+    <span class="chip mono">commit 8ae5a0e</span>
+    <span class="chip">5 篇 · 1,589 行</span>
+    <span class="chip">GPL-3.0</span>
   </div>
 </section>
 
-<section id="four">
+<section id="what" class="sec sec-white">
   <div class="wrap">
-    <div class="sec-head"><span class="sec-num">02</span><h2>四块内容</h2></div>
-    <p class="sec-sub">按你要求的四项拆分。每篇都按「能直接抄」的标准写，不写“建议配置”这种废话。</p>
+    <p class="kicker">01</p>
+    <h2>交付物是什么</h2>
+    <p class="sub">一个 skill 目录，加一个能直接 <code>bash build.sh</code> 出包的最小工程。不是文档堆，是可执行的脚手架。</p>
 
-    <div class="cards">
-      <div class="card">
-        <span class="file">adb.md</span>
-        <div class="k">01 · ADB</div>
-        <h3>adb 使用方法</h3>
-        <p>这块表最耗时间的不是写代码，是把 adb 调通。</p>
-        <ul>
-          <li>息屏的表叫不醒：<code>keyevent 224/26</code> 全部无效</li>
-          <li>可靠唤醒配方：<code>battery set ac 1</code> + input 事件</li>
-          <li>充电屏 <code>SysUI.Charging</code> 抢焦点怎么绕</li>
-          <li>截图 1610 字节 = 纯黑，不是崩溃</li>
-          <li>横滑撞系统手势、两次输入之间要 sleep</li>
-        </ul>
+    <div class="sec-body">
+      <div class="stats reveal">
+        <div class="stat"><b>4</b><span>篇 references 主题</span></div>
+        <div class="stat"><b>20</b><span>条真实避坑记录</span></div>
+        <div class="stat"><b>25<i>KB</i></b><span>模板编译产物</span></div>
+        <div class="stat"><b>5<i>s</i></b><span>全量构建耗时</span></div>
       </div>
 
-      <div class="card">
-        <span class="file">project-notes.md</span>
-        <div class="k">02 · 工程</div>
-        <h3>项目经验</h3>
-        <p>186×215 dp 的屏幕，所有“通用最佳实践”都得重算。</p>
-        <ul>
-          <li>完全自绘 View 的分层（View / Store / Loader / Api）</li>
-          <li>解析函数写成 <code>static</code>，用真实 JSON 离线自测</li>
-          <li>三层缓存：内存 90s / 磁盘 3MB / 网络</li>
-          <li>分页：第一页往往不含“今天”</li>
-          <li>惯性衰减 <code>pow(0.93, dt/16)</code>、防烧屏</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <span class="file">caveats.md</span>
-        <div class="k">03 · 注意事项</div>
-        <h3>注意事项</h3>
-        <p>构建链每一环的参数与顺序，错一个就卡半小时。</p>
-        <ul>
-          <li>aapt2 compile <code>--no-crunch</code> / link <code>--java</code></li>
-          <li><code>javac -source 8 -target 8</code>，org.json 不进 apk</li>
-          <li>zipalign <b>必须</b>在签名之前</li>
-          <li>清单：watch feature、portrait、NoActionBar</li>
-          <li>窗口亮度 ≠ Settings.System 亮度</li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <span class="file">pitfalls.md</span>
-        <div class="k">04 · 避坑</div>
-        <h3>避坑点</h3>
-        <p>20 条「症状 → 原因 → 解法」，按踩到的频率排序。</p>
-        <ul>
-          <li>d8 直接 NPE → 换 <code>tools/r8.jar</code></li>
-          <li>上滑“弹簧回弹” → 速度符号写反</li>
-          <li>底部圆点点不动 → 热区判定顺序</li>
-          <li>无限滚动手感死 → <code>hasMore</code> 从没赋值</li>
-          <li>未开赛详情空壳 → 改走赛前分析接口</li>
-        </ul>
+      <div class="tree reveal" role="list" aria-label="仓库结构">
+        <div class="trow"><span class="tpath"><span class="dir">OPPO-Watch2-APK-Skill/</span></span></div>
+        <div class="trow"><span class="tpath">├── SKILL.md</span><span class="tnote">agent 入口 · frontmatter + 硬结论</span></div>
+        <div class="trow"><span class="tpath">├── README.md</span><span class="tnote">30 秒上手 + 六条最贵结论</span></div>
+        <div class="trow"><span class="tpath">├── <span class="dir">references/</span></span><span class="tnote">四篇主题文档</span></div>
+        <div class="trow"><span class="tpath">│   ├── adb.md</span><span class="tnote">① adb 使用方法 · 129 行</span></div>
+        <div class="trow"><span class="tpath">│   ├── project-notes.md</span><span class="tnote">② 项目经验 · 150 行</span></div>
+        <div class="trow"><span class="tpath">│   ├── caveats.md</span><span class="tnote">③ 注意事项 · 71 行</span></div>
+        <div class="trow"><span class="tpath">│   └── pitfalls.md</span><span class="tnote">④ 避坑点 · 247 行</span></div>
+        <div class="trow"><span class="tpath">└── <span class="dir">templates/</span></span><span class="tnote">最小可编译工程</span></div>
+        <div class="trow"><span class="tpath">&nbsp;&nbsp;&nbsp;&nbsp;├── build.sh</span><span class="tnote">五步构建 · 90 行</span></div>
+        <div class="trow"><span class="tpath">&nbsp;&nbsp;&nbsp;&nbsp;├── WatchView.java</span><span class="tnote">自绘 UI 骨架 · 436 行</span></div>
+        <div class="trow"><span class="tpath">&nbsp;&nbsp;&nbsp;&nbsp;├── Main.java · Cache.java</span><span class="tnote">Activity + 磁盘缓存</span></div>
+        <div class="trow"><span class="tpath">&nbsp;&nbsp;&nbsp;&nbsp;└── res/ · tools/adddex.py</span><span class="tnote">资源与 dex 打包</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="chain">
-  <div class="wrap">
-    <div class="sec-head"><span class="sec-num">03</span><h2>构建链：五步，每一步都有坑</h2></div>
-    <p class="sec-sub">不用 Gradle 的代价是手动串五步；好处是全量构建 5 秒、产物 25 KB 起。</p>
+<section id="four" class="sec sec-surface">
+  <div class="wrap-wide">
+    <p class="kicker">02</p>
+    <h2>四块内容</h2>
+    <p class="sub">按你要求的四项拆分。每篇都按「能直接抄」的标准写，不写“建议配置”这种废话。</p>
 
-    <div class="chain">
-      <div class="step">
-        <div class="i">01</div><div class="cmd">aapt2 compile</div>
+    <div class="sec-body">
+      <div class="cards">
+        <article class="card reveal">
+          <span class="tag">adb.md</span>
+          <h3>adb 使用方法</h3>
+          <p class="desc">这块表最耗时间的不是写代码，是把 adb 调通。</p>
+          <ul>
+            <li>息屏的表叫不醒：<code>keyevent 224/26</code> 全部无效</li>
+            <li>可靠唤醒配方：<code>battery set ac 1</code> + input 事件</li>
+            <li>充电屏 <code>SysUI.Charging</code> 抢焦点怎么绕</li>
+            <li>截图 1610 字节 = 纯黑，不是崩溃</li>
+            <li>横滑撞系统手势、两次输入之间要 sleep</li>
+          </ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="tag">project-notes.md</span>
+          <h3>项目经验</h3>
+          <p class="desc">186×215 dp 的屏幕，所有“通用最佳实践”都得重算。</p>
+          <ul>
+            <li>完全自绘 View 的分层（View / Store / Loader / Api）</li>
+            <li>解析函数写成 <code>static</code>，用真实 JSON 离线自测</li>
+            <li>三层缓存：内存 90s / 磁盘 3MB / 网络</li>
+            <li>分页：第一页往往不含“今天”</li>
+            <li>惯性衰减 <code>pow(0.93, dt/16)</code>、防烧屏</li>
+          </ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="tag">caveats.md</span>
+          <h3>注意事项</h3>
+          <p class="desc">构建链每一环的参数与顺序，错一个就卡半小时。</p>
+          <ul>
+            <li>aapt2 compile <code>--no-crunch</code> / link <code>--java</code></li>
+            <li><code>javac -source 8 -target 8</code>，org.json 不进 apk</li>
+            <li>zipalign <b>必须</b>在签名之前</li>
+            <li>清单：watch feature、portrait、NoActionBar</li>
+            <li>窗口亮度 ≠ Settings.System 亮度</li>
+          </ul>
+        </article>
+
+        <article class="card reveal">
+          <span class="tag">pitfalls.md</span>
+          <h3>避坑点</h3>
+          <p class="desc">20 条「症状 → 原因 → 解法」，按踩到的频率排序。</p>
+          <ul>
+            <li>d8 直接 NPE → 换 <code>tools/r8.jar</code></li>
+            <li>上滑“弹簧回弹” → 速度符号写反</li>
+            <li>底部圆点点不动 → 热区判定顺序</li>
+            <li>无限滚动手感死 → <code>hasMore</code> 从没赋值</li>
+            <li>未开赛详情空壳 → 改走赛前分析接口</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="chain" class="sec sec-white">
+  <div class="wrap">
+    <p class="kicker">03</p>
+    <h2>构建链：五步，每一步都有坑</h2>
+    <p class="sub">不用 Gradle 的代价是手动串五步；好处是全量构建 5 秒、产物 25 KB 起。</p>
+
+    <div class="chain sec-body">
+      <div class="step reveal">
+        <div class="i">01</div>
+        <div class="cmd">aapt2 compile</div>
         <div class="why"><b>资源编译。</b>加 <code>--no-crunch</code>：跳过 PNG 压缩，更快，且矢量图本来就不用压。
-          <br><span class="trap">坑：build.sh 存成 CRLF，bash 把 \r 当参数，报一串 unknown option</span></div>
+          <span class="trap"><em>坑</em>build.sh 存成 CRLF，bash 把 \r 当参数，报一串 unknown option。</span></div>
       </div>
-      <div class="step">
-        <div class="i">02</div><div class="cmd">aapt2 link</div>
+      <div class="step reveal">
+        <div class="i">02</div>
+        <div class="cmd">aapt2 link</div>
         <div class="why"><b>链接出 base.apk。</b><code>--java $OUT/gen</code> 生成 R.java，<code>--min-sdk 26 --target-sdk 27</code>。
-          <br><span class="trap">坑：漏了 --java，javac 阶段找不到 R</span></div>
+          <span class="trap"><em>坑</em>漏了 --java，javac 阶段找不到 R。</span></div>
       </div>
-      <div class="step">
-        <div class="i">03</div><div class="cmd">javac</div>
+      <div class="step reveal">
+        <div class="i">03</div>
+        <div class="cmd">javac</div>
         <div class="why"><b>编 Java。</b><code>-source 8 -target 8</code>，classpath 只放 <code>android.jar</code>。
-          <br><span class="trap">坑：把 json.jar 塞进 apk classpath → 运行时类冲突，org.json 必须用系统的</span></div>
+          <span class="trap"><em>坑</em>把 json.jar 塞进 apk classpath → 运行时类冲突，org.json 必须用系统的。</span></div>
       </div>
-      <div class="step">
-        <div class="i">04</div><div class="cmd">d8 → adddex</div>
+      <div class="step reveal">
+        <div class="i">04</div>
+        <div class="cmd">d8 → adddex</div>
         <div class="why"><b>转 dex 并塞进 apk。</b>JBR 没有 <code>jar</code> 工具，所以用 python zipfile 手写条目。
-          <br><span class="trap">坑：build-tools 33.0.2 自带 d8 直接 NPE → 换 tools/r8.jar</span></div>
+          <span class="trap"><em>坑</em>build-tools 33.0.2 自带 d8 直接 NPE → 换 tools/r8.jar。</span></div>
       </div>
-      <div class="step">
-        <div class="i">05</div><div class="cmd">zipalign → apksigner</div>
+      <div class="step reveal">
+        <div class="i">05</div>
+        <div class="cmd">zipalign → apksigner</div>
         <div class="why"><b>对齐后签名。</b>顺序不能反；<code>apksigner.bat</code> 必须给 <b>Windows 原生</b> JAVA_HOME。
-          <br><span class="trap">坑：JAVA_HOME=/d/... 报 invalid directory，要 cygpath -w</span></div>
+          <span class="trap"><em>坑</em>JAVA_HOME=/d/... 报 invalid directory，要 cygpath -w。</span></div>
       </div>
     </div>
   </div>
 </section>
 
-<section id="pitfalls">
+<section id="pitfalls" class="sec sec-surface">
   <div class="wrap">
-    <div class="sec-head"><span class="sec-num">04</span><h2>六个最贵的坑</h2></div>
-    <p class="sec-sub">完整 20 条在 <code>references/pitfalls.md</code>。这六条是排查成本最高的，每条都真的耗过时间。</p>
+    <p class="kicker">04</p>
+    <h2>六个最贵的坑</h2>
+    <p class="sub">完整 20 条在 <code>references/pitfalls.md</code>。这六条是排查成本最高的，每条都真的耗过时间。</p>
 
-    <div class="pit">
-      <div class="p hot">
-        <div class="t">息屏的表，<code>input keyevent</code> 叫不醒 <em>#1</em></div>
-        <div class="row"><span class="lbl">症状</span><span>截图永远是 1610 字节纯黑，App 明明在跑。</span></div>
-        <div class="row"><span class="lbl">原因</span><span><code>mWakefulness=Asleep</code>；224(WAKEUP) 与 26(POWER) 在这台机器上都不生效。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix"><code>dumpsys battery set ac 1</code> → sleep 2 → <code>dumpsys battery unplug</code> → 任意 input 事件；用完 <code>dumpsys battery reset</code>。</span></div>
-      </div>
+    <div class="pits sec-body">
+      <article class="pit reveal">
+        <h3>息屏的表，<code>input keyevent</code> 叫不醒 <span class="n">#1</span></h3>
+        <dl>
+          <dt>症状</dt><dd>截图永远是 1610 字节纯黑，App 明明在跑。</dd>
+          <dt>原因</dt><dd><code>mWakefulness=Asleep</code>；224(WAKEUP) 与 26(POWER) 在这台机器上都不生效。</dd>
+          <dt>解法</dt><dd class="fix"><code>dumpsys battery set ac 1</code> → sleep 2 → <code>dumpsys battery unplug</code> → 任意 input 事件；用完 <code>dumpsys battery reset</code>。</dd>
+        </dl>
+      </article>
 
-      <div class="p hot">
-        <div class="t">d8 直接抛 NPE <em>#4</em></div>
-        <div class="row"><span class="lbl">症状</span><span>堆栈指向匿名内部类，跟自己的代码毫无关系。</span></div>
-        <div class="row"><span class="lbl">原因</span><span>build-tools 33.0.2 自带的 R8 3.3.20 解析不了现代 javac 的 class 文件。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix">换更新的 <code>tools/r8.jar</code>，脚本里做 <code>[ -f ] && D8JAR=...</code> 优先级判断。</span></div>
-      </div>
+      <article class="pit reveal">
+        <h3>d8 直接抛 NPE <span class="n">#4</span></h3>
+        <dl>
+          <dt>症状</dt><dd>堆栈指向匿名内部类，跟自己的代码毫无关系。</dd>
+          <dt>原因</dt><dd>build-tools 33.0.2 自带的 R8 3.3.20 解析不了现代 javac 的 class 文件。</dd>
+          <dt>解法</dt><dd class="fix">换更新的 <code>tools/r8.jar</code>，脚本里做 <code>[ -f ] &amp;&amp; D8JAR=...</code> 优先级判断。</dd>
+        </dl>
+      </article>
 
-      <div class="p">
-        <div class="t">上滑时“弹簧一样往上弹” <em>#7</em></div>
-        <div class="row"><span class="lbl">症状</span><span>惯性滚动正常，松手瞬间往反方向弹一下。</span></div>
-        <div class="row"><span class="lbl">原因</span><span>符号写反：<code>next = (int)(sc - st[0])</code>，速度方向被取反。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix">改成 <code>sc + st[0]</code>。这类“手感代码”只能真机滑，读代码看不出来。</span></div>
-      </div>
+      <article class="pit reveal">
+        <h3>上滑时“弹簧一样往上弹” <span class="n">#7</span></h3>
+        <dl>
+          <dt>症状</dt><dd>惯性滚动正常，松手瞬间往反方向弹一下。</dd>
+          <dt>原因</dt><dd>符号写反：<code>next = (int)(sc - st[0])</code>，速度方向被取反。</dd>
+          <dt>解法</dt><dd class="fix">改成 <code>sc + st[0]</code>。这类“手感代码”只能真机滑，读代码看不出来。</dd>
+        </dl>
+      </article>
 
-      <div class="p">
-        <div class="t">列表滑到底不再加载 <em>#10</em></div>
-        <div class="row"><span class="lbl">症状</span><span>没有新数据，底部“加载更多”提示也从不出现。</span></div>
-        <div class="row"><span class="lbl">原因</span><span><code>Page.hasMore</code> 定义了但从来没赋值，读它永远是 <code>false</code>。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix">在组装列表的收尾处显式赋值，并以“拉回空页”作为 exhausted 依据。</span></div>
-      </div>
+      <article class="pit reveal">
+        <h3>列表滑到底不再加载 <span class="n">#10</span></h3>
+        <dl>
+          <dt>症状</dt><dd>没有新数据，底部“加载更多”提示也从不出现。</dd>
+          <dt>原因</dt><dd><code>Page.hasMore</code> 定义了但从来没赋值，读它永远是 <code>false</code>。</dd>
+          <dt>解法</dt><dd class="fix">在组装列表的收尾处显式赋值，并以“拉回空页”作为 exhausted 依据。</dd>
+        </dl>
+      </article>
 
-      <div class="p">
-        <div class="t">未开赛比赛的详情接口返回空壳 <em>#12</em></div>
-        <div class="row"><span class="lbl">症状</span><span><code>/data</code> 只有 8 KB，<code>bouts_state</code> 空数组，一张地图都没有。</span></div>
-        <div class="row"><span class="lbl">原因</span><span>比赛还没打，逐图数据本来就不存在。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix">降级去调赛前分析接口（<code>analysis_v1</code>），它有双方选手、地图胜率、交手记录。</span></div>
-      </div>
+      <article class="pit reveal">
+        <h3>未开赛比赛的详情接口返回空壳 <span class="n">#12</span></h3>
+        <dl>
+          <dt>症状</dt><dd><code>/data</code> 只有 8 KB，<code>bouts_state</code> 空数组，一张地图都没有。</dd>
+          <dt>原因</dt><dd>比赛还没打，逐图数据本来就不存在。</dd>
+          <dt>解法</dt><dd class="fix">降级去调赛前分析接口（<code>analysis_v1</code>），它有双方选手、地图胜率、交手记录。</dd>
+        </dl>
+      </article>
 
-      <div class="p cold">
-        <div class="t">冷启动白屏，弱网整屏报错 <em>#14</em></div>
-        <div class="row"><span class="lbl">症状</span><span>网络慢时打开就“无法连接”，昨天明明还能看。</span></div>
-        <div class="row"><span class="lbl">原因</span><span>没有任何持久化，每次启动都必须联网成功才能画。</span></div>
-        <div class="row"><span class="lbl">解法</span><span class="fix">加磁盘缓存层（<code>Cache.java</code>），顺序 内存 → 磁盘 → 网络，失败用上次数据并标“离线”。</span></div>
-      </div>
+      <article class="pit reveal">
+        <h3>冷启动白屏，弱网整屏报错 <span class="n">#14</span></h3>
+        <dl>
+          <dt>症状</dt><dd>网络慢时打开就“无法连接”，昨天明明还能看。</dd>
+          <dt>原因</dt><dd>没有任何持久化，每次启动都必须联网成功才能画。</dd>
+          <dt>解法</dt><dd class="fix">加磁盘缓存层（<code>Cache.java</code>），顺序 内存 → 磁盘 → 网络，失败用上次数据并标“离线”。</dd>
+        </dl>
+      </article>
     </div>
   </div>
 </section>
 
-<section id="proof">
+<section id="proof" class="sec sec-white">
   <div class="wrap">
-    <div class="sec-head"><span class="sec-num">05</span><h2>实测证据</h2></div>
-    <p class="sec-sub">模板不是“看起来能编”。克隆仓库、按文档摆好目录、直接 build，下面是真实输出。</p>
+    <p class="kicker">05</p>
+    <h2>实测证据</h2>
+    <p class="sub">模板不是“看起来能编”。克隆仓库、按文档摆好目录、直接 build，下面是真实输出。</p>
 
-    <div class="term">
+    <div class="term reveal">
 <span class="m"># 1. 克隆仓库，按 SKILL.md 摆成 app/src/... + app/res/ + tools/</span>
-<span class="cmdline">$ git clone https://github.com/56dz/OPPO-Watch2-APK-Skill.git</span>
+<span class="k">$ git clone https://github.com/56dz/OPPO-Watch2-APK-Skill.git</span>
 
-<span class="cmdline">$ bash build.sh</span>
-<span class="y">==&gt;</span> aapt2 compile
-<span class="y">==&gt;</span> aapt2 link
-<span class="y">==&gt;</span> javac
-<span class="y">==&gt;</span> d8
-<span class="y">==&gt;</span> package
-<span class="y">==&gt;</span> zipalign
-<span class="y">==&gt;</span> sign
-<span class="g">==&gt; signed OK</span>
--rwxr-xr-x 1 user 25139 <span class="m">app.apk</span>
+<span class="k">$ bash build.sh</span>
+==&gt; aapt2 compile
+==&gt; aapt2 link
+==&gt; javac
+==&gt; d8
+==&gt; package
+==&gt; zipalign
+==&gt; sign
+<span class="ok">==&gt; signed OK</span>
+-rwxr-xr-x  1 user  25139  <span class="m">app.apk</span>
 
-<span class="cmdline">$ aapt2 dump badging app.apk</span>
-package: name=<span class="g">'com.example.watchapp'</span> versionCode='1'
+<span class="k">$ aapt2 dump badging app.apk</span>
+package: name='com.example.watchapp' versionCode='1'
 sdkVersion:'26'  targetSdkVersion:'27'
 application-label:'Watch App'
     </div>
   </div>
 </section>
 
-<section id="use">
-  <div class="wrap">
-    <div class="sec-head"><span class="sec-num">06</span><h2>怎么用</h2></div>
-    <p class="sec-sub">两种用法：给人看，或者直接喂给 agent。</p>
+<section id="use" class="sec sec-surface">
+  <div class="wrap-wide">
+    <p class="kicker">06</p>
+    <h2>怎么用</h2>
+    <p class="sub">两种用法：给人看，或者直接喂给 agent。</p>
 
-    <div class="use">
-      <div class="usecard">
-        <h4>① 作为 agent skill</h4>
-        <ol>
-          <li>把整个目录放进 skill 路径，<b>SKILL.md</b> 有 frontmatter，能被直接识别。</li>
-          <li>agent 会先读 SKILL.md 的「硬性结论」，再按需展开 references。</li>
-          <li>写代码时直接 copy <b>templates/</b>，改包名和业务逻辑即可。</li>
-        </ol>
+    <div class="sec-body">
+      <div class="use">
+        <article class="usecard reveal">
+          <h3>① 作为 agent skill</h3>
+          <ol>
+            <li>把整个目录放进 skill 路径，<b>SKILL.md</b> 有 frontmatter，能被直接识别。</li>
+            <li>agent 会先读 SKILL.md 的「硬性结论」，再按需展开 references。</li>
+            <li>写代码时直接 copy <b>templates/</b>，改包名和业务逻辑即可。</li>
+          </ol>
+        </article>
+        <article class="usecard reveal">
+          <h3>② 作为人读的手册</h3>
+          <ol>
+            <li>先看 <b>README.md</b> 的 30 秒上手，跑通空白工程。</li>
+            <li>卡住了按现象查 <b>pitfalls.md</b>，每条形如「症状 → 原因 → 解法」。</li>
+            <li>设计 UI 前先读 <b>project-notes.md</b> 的 186×215 dp 排版数学。</li>
+          </ol>
+        </article>
       </div>
-      <div class="usecard">
-        <h4>② 作为人读的手册</h4>
-        <ol>
-          <li>先看 <b>README.md</b> 的 30 秒上手，跑通空白工程。</li>
-          <li>卡住了按现象查 <b>pitfalls.md</b>，每条形如「症状 → 原因 → 解法」。</li>
-          <li>设计 UI 前先读 <b>project-notes.md</b> 的 186×215 dp 排版数学。</li>
-        </ol>
-      </div>
-    </div>
 
-    <div class="term" style="margin-top:16px">
-<span class="m"># 改名时三处要一起改，否则编译期就报错：</span>
-AndroidManifest.xml   package=<span class="y">"com.your.pkg"</span>
-Main/WatchView.java   <span class="y">package com.your.pkg;</span>
-app/src/<span class="y">com/your/pkg/</span>
+      <p class="note">改名时三处要一起改，否则编译期就报错：<code>AndroidManifest.xml</code> 的 <code>package</code>、<code>Main.java</code> / <code>WatchView.java</code> 的 <code>package</code> 声明、以及 <code>app/src/</code> 下的目录路径。</p>
     </div>
   </div>
 </section>
 
-<footer>
-  <div class="wrap">
+</main>
+
+<footer class="footer">
+  <div class="wrap-wide">
     <div>OPPO Watch 2 原生 APK 开发经验包 · GPL-3.0 · 2026-11-24</div>
     <div><a href="https://github.com/56dz/OPPO-Watch2-APK-Skill">github.com/56dz/OPPO-Watch2-APK-Skill</a></div>
   </div>
 </footer>
+
+<script>
+(function(){
+  var html = document.documentElement;
+  html.classList.remove('no-js');
+  html.classList.add('js');
+
+  // Nav: translucent → denser once content scrolls underneath.
+  var nav = document.getElementById('nav');
+  var onScroll = function(){ nav.classList.toggle('scrolled', window.scrollY > 8); };
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+
+  // Reveal: gentle spring on opacity + transform only.
+  var items = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window) ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    for (var i = 0; i < items.length; i++) items[i].classList.add('in');
+    return;
+  }
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      e.target.classList.add('in');
+      io.unobserve(e.target);
+    });
+  }, {rootMargin:'0px 0px -8% 0px', threshold:0.08});
+  for (var j = 0; j < items.length; j++) io.observe(items[j]);
+})();
+</script>
 
 </body>
 </html>
