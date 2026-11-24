@@ -17,6 +17,7 @@
 | 可编译模板 | [`templates/`](templates/) | 一个 25 KB 的最小工程：`build.sh` + 清单 + 资源 + Activity + 自绘 View 骨架 + 磁盘缓存 |
 
 Agent 接入点见 [`SKILL.md`](SKILL.md)（含 frontmatter，可直接作为 DSH/Claude skill 目录使用）。
+不想读 Markdown 的话，[`report.html`](report.html) 是同样内容的单页汇报稿（离线可开，无外部依赖）。
 
 ## 30 秒上手
 
